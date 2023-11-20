@@ -1,14 +1,12 @@
-/**
- *Submitted for verification at BscScan.com on 2021-06-04
-*/
+// SPDX-License-Identifier: MIT
 
-// Add comments to contracts all code is in EverGreen.sol
 pragma solidity >=0.4.23 <0.7.0;
+import "./interfaces/IERC20.sol";
+import "./lib/SafeERC20.sol";
 
 contract EverGreen{
-
-    //M4User is used to store the user details of M4 Matrix
-        struct M4User {
+    using SafeERC20 for IERC20;
+    struct M4User {
         uint8 level; 
         mapping(uint => M4Matrix) M4;
     }
@@ -55,15 +53,15 @@ contract EverGreen{
     mapping(address => uint) public balances; 
     mapping(uint8 => uint[]) public L5Matrix;
     
+    IERC20 public depositToken;
     uint public lastUserId = 2;
     uint8 public constant LAST_LEVEL = 13;
     address public owner;
-    uint8[14] private rentmatrx = [0,1,1,1,1,2,4,2,2,2,2,2,3,3];
-    uint8[14] private rentids = [0,1,1,2,0,1,1,2,2,4,4,4,1,2];
-    uint[5] public matrixbenefit = [0,0.005 ether,0.1 ether,5 ether,0.2 ether];
-    uint[14] public matrixprice = [0,0.005 ether,0.01 ether,0.02 ether,0.04 ether,0.10 ether,0.20 ether,0.40 ether,0.80 ether,1.60 ether,3.20 ether,6.40 ether,12.80 ether,25.60 ether];
-    uint[14] public uplineben = [0,0,0.005 ether,0.01 ether,0.02 ether,0,0,0.20 ether,0.40 ether,0.80 ether,1.60 ether,3.20 ether,6.40 ether,12.80 ether];
-   
+    uint8[14] private rentmatrx = [0, 1, 1, 1, 1, 2, 4, 2, 2, 2, 2, 2, 3, 3];
+    uint8[14] private rentids = [0, 1, 1, 2, 0, 1, 1, 2, 2, 4, 4, 4, 1, 2];
+    uint[5] public matrixbenefit = [0, 1e6, 20e6, 1000e6, 40e6];
+    uint[14] public matrixprice = [0, 1e6, 2e6, 4e6, 8e6, 20e6, 40e6, 80e6, 160e6, 320e6, 640e6, 1280e6, 2560e6, 5120e6];
+    uint[14] public uplineben = [0, 0, 1e6, 2e6, 4e6, 0, 0, 40e6, 80e6, 160e6, 320e6, 640e6, 1280e6, 2560e6];
     event Registration(address indexed user, address indexed referrer, uint indexed userId, uint referrerId);
     event BuyNew(address indexed user, uint8 indexed level);
     event Payout(address indexed sender,address indexed receiver,uint indexed dividend,uint userid,uint refid,uint8 matrix,uint8 level,uint recid,uint renty);
@@ -71,8 +69,8 @@ contract EverGreen{
    // event Testor21(uint benid,uint topid,uint8 position);
     //event Testor22(uint benid,uint topid,uint8 position);
 
-    constructor(address ownerAddress) public {
-        
+    constructor(address ownerAddress, IERC20 _depositToken) public {
+        depositToken = _depositToken;
         owner = ownerAddress;
         User memory user = User({
             id: 1,
@@ -113,22 +111,22 @@ contract EverGreen{
         }
 
     }
-
-    function() external payable {
-        if(msg.data.length == 0) {
-            return registration(msg.sender, owner);
-        }
+    
+    // function() external payable {
+    //     if(msg.data.length == 0) {
+    //         return registration(msg.sender, owner);
+    //     }
         
-        registration(msg.sender, bytesToAddress(msg.data));
-    }
+    //     registration(msg.sender, bytesToAddress(msg.data));
+    // }
 
-        function registrationExt(address referrerAddress) external payable {
-        registration(msg.sender, referrerAddress);
+    function registrationExt(address referrerAddress, uint256 tokenAmount) external {
+        registration(msg.sender, referrerAddress, tokenAmount);
     }
     
-        function registration(address userAddress, address referrerAddress) private {
-                require(msg.value == (matrixprice[1] * 2), "registration cost 0.005 ether");
-                require(!isUserExists(userAddress), "user exists");
+    function registration(address userAddress, address referrerAddress, uint256 tokenAmount) private {
+        require(tokenAmount == (matrixprice[1] * 2), "registration cost 1 USDT");
+        require(!isUserExists(userAddress), "user exists");
         require(isUserExists(referrerAddress), "referrer not exists");
         
         uint32 size;
@@ -143,6 +141,8 @@ contract EverGreen{
             partnercount :0,
             maxlevel:1
         });
+
+        depositToken.safeTransferFrom(msg.sender, address(this), (matrixprice[1] * 2));
         
         users[userAddress] = user;
         users[userAddress].referrer = referrerAddress;
@@ -159,16 +159,16 @@ contract EverGreen{
         
     }
 
-    function buyNewLevel(uint8 level) external payable {
+    function buyNewLevel(uint8 level, uint256 tokenAmount) external {
         require(isUserExists(msg.sender), "user is not exists. Register first.");
-        require(msg.value == (matrixprice[level]), "invalid price");
+        require(tokenAmount == (matrixprice[level]), "invalid price");
         require(level > 1 && level <= LAST_LEVEL, "invalid level");
         require(!users[msg.sender].activeE3Levels[level], "level already activated");
-
+        depositToken.safeTransferFrom(msg.sender, address(this), (matrixprice[level]));
         BuyM4Matrix(msg.sender,level);
     }
     
-        function BuyM4Matrix(address userAddress, uint8 level) private {
+    function BuyM4Matrix(address userAddress, uint8 level) private {
         if (users[userAddress].E3Matrix[level-1].blocked) {
             users[userAddress].E3Matrix[level-1].blocked = false;
         }
@@ -179,8 +179,8 @@ contract EverGreen{
         users[userAddress].maxlevel = level;
         updateE3Referrer(userAddress, freeD3Referrer, level);
     }
-
-        function updateE3Referrer(address userAddress, address referrerAddress,uint8 level) private {
+    
+    function updateE3Referrer(address userAddress, address referrerAddress,uint8 level) private {
         users[referrerAddress].E3Matrix[level].referrals.push(userAddress);
         uint reentry = users[referrerAddress].E3Matrix[level].reinvestCount;
         uint referral = users[referrerAddress].E3Matrix[level].referrals.length;
@@ -476,12 +476,8 @@ contract EverGreen{
         return (users[userAddress].partners[0]);
     }
     
-    function sendreward(address receiver,uint dividend) private {
-        
-        if (!address(uint160(receiver)).send(dividend)) {
-            return address(uint160(receiver)).transfer(address(this).balance);
-        }
-        
+    function sendreward(address recipient, uint reward) private {
+        depositToken.safeTransfer(recipient, reward);
     }
     
     function bytesToAddress(bytes memory bys) private pure returns (address addr) {
