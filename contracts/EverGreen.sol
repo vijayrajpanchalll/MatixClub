@@ -8,7 +8,7 @@ pragma solidity >=0.4.23 <0.7.0;
 contract EverGreen{
 
     //M4User is used to store the user details of M4 Matrix
-    struct M4User {
+        struct M4User {
         uint8 level; 
         mapping(uint => M4Matrix) M4;
     }
@@ -113,7 +113,7 @@ contract EverGreen{
         }
 
     }
-    
+
     function() external payable {
         if(msg.data.length == 0) {
             return registration(msg.sender, owner);
@@ -122,13 +122,13 @@ contract EverGreen{
         registration(msg.sender, bytesToAddress(msg.data));
     }
 
-    function registrationExt(address referrerAddress) external payable {
+        function registrationExt(address referrerAddress) external payable {
         registration(msg.sender, referrerAddress);
     }
     
-    function registration(address userAddress, address referrerAddress) private {
-        require(msg.value == (matrixprice[1] * 2), "registration cost 0.005 ether");
-        require(!isUserExists(userAddress), "user exists");
+        function registration(address userAddress, address referrerAddress) private {
+                require(msg.value == (matrixprice[1] * 2), "registration cost 0.005 ether");
+                require(!isUserExists(userAddress), "user exists");
         require(isUserExists(referrerAddress), "referrer not exists");
         
         uint32 size;
@@ -168,7 +168,7 @@ contract EverGreen{
         BuyM4Matrix(msg.sender,level);
     }
     
-    function BuyM4Matrix(address userAddress, uint8 level) private {
+        function BuyM4Matrix(address userAddress, uint8 level) private {
         if (users[userAddress].E3Matrix[level-1].blocked) {
             users[userAddress].E3Matrix[level-1].blocked = false;
         }
@@ -179,8 +179,8 @@ contract EverGreen{
         users[userAddress].maxlevel = level;
         updateE3Referrer(userAddress, freeD3Referrer, level);
     }
-    
-    function updateE3Referrer(address userAddress, address referrerAddress,uint8 level) private {
+
+        function updateE3Referrer(address userAddress, address referrerAddress,uint8 level) private {
         users[referrerAddress].E3Matrix[level].referrals.push(userAddress);
         uint reentry = users[referrerAddress].E3Matrix[level].reinvestCount;
         uint referral = users[referrerAddress].E3Matrix[level].referrals.length;
