@@ -1,6 +1,11 @@
 require("@nomicfoundation/hardhat-chai-matchers");
+require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-solhint");
+require("hardhat-gas-reporter");
+require("hardhat-contract-sizer");
+require("solidity-coverage");
 
 module.exports = {
   networks: {
@@ -17,11 +22,11 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.5.17",
+        version: "0.4.17",
         settings: {},
       },
       {
-        version: "0.8.20",
+        version: "0.6.12",
         settings: {},
       },
     ],
